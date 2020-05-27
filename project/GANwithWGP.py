@@ -1,10 +1,10 @@
-from math import floor
-import numpy as np
-import time
-import matplotlib.pyplot as plt
-from functools import partial
 
-# Config Stuff
+
+#================== Config Stuff=================================================
+TRAIN_FROM_SCRATCH = False
+D_MODEL_PATH = "models/stgcont_80000.h5"
+G_MODEL_PATH = "models/stgcont_80000.h5"
+
 LEARNING_RATE = 0.0002
 IM_SIZE = 64
 LATENT_SIZE = 128
@@ -14,22 +14,17 @@ ENABLE_NOISE = True
 IMG_SAVE_INTERVAL = 1000
 MODEL_SAVE_INTERVAL = 40000
 
-"""
-PATH = '/content/drive/My Drive/ml100-03-final/anime01.npz'
-IMG_SAVE_PATH = 'fuck/anime_%d.png'
-MODEL_SAVE_PATH_D = '/content/drive/My Drive/Colab Notebooks/take3/styleGAN_test_d_%d.h5'
-MODEL_SAVE_PATH_G = '/content/drive/My Drive/Colab Notebooks/take3/styleGAN_test_g_%d.h5'
-"""
-
 PATH = "dataset/anime01.npz"
 IMG_SAVE_PATH = "fuck/anime_%d.png"
 MODEL_SAVE_PATH_G = 'models/stgcont_%d.h5'
 MODEL_SAVE_PATH_D = 'models/stdcont_%d.h5'
+#================== Config Stuff=================================================
 
 # Imports for layers and models
-from keras.layers import Conv2D, Dense, AveragePooling2D, LeakyReLU, Activation, BatchNormalization
+from keras.layers import Conv2D, Dense, AveragePooling2D, LeakyReLU, Activation
 from keras.layers import Reshape, UpSampling2D, Dropout, Flatten, Input, add, Cropping2D
 from keras.models import Model
+from keras import models
 from keras.optimizers import Adam
 import keras.backend as K
 from keras.layers import Layer
@@ -37,6 +32,10 @@ from keras.layers import Layer
 import shutil
 import os
 
+import numpy as np
+import time
+import matplotlib.pyplot as plt
+from functools import partial
 
 # Input b and g should be 1x1xC
 class AdaInstanceNormalization(Layer):
@@ -97,14 +96,11 @@ class AdaInstanceNormalization(Layer):
 
         return input_shape[0]
 
-
 def get_noise(n):
     return np.random.normal(0.0, 1.0, size=[n, LATENT_SIZE])
 
-
 def get_noiseImage(n):
     return np.random.uniform(0.0, 1.0, size=[n, IM_SIZE, IM_SIZE, 1])
-
 
 # Upsample, Convolution, AdaIN, Noise, Activation, Convolution, AdaIN, Noise, Activation
 def g_block(inp, style, noise, fil, u=True):
@@ -142,7 +138,6 @@ def g_block(inp, style, noise, fil, u=True):
 
     return out
 
-
 # Convolution, Activation, Pooling, Convolution, Activation
 def d_block(inp, fil, p=True):
     route2 = Conv2D(filters=fil, kernel_size=3, padding='same', kernel_initializer='he_normal')(inp)
@@ -154,7 +149,6 @@ def d_block(inp, fil, p=True):
 
     return out
 
-
 def gradient_penalty_loss(y_true, y_pred, averaged_samples, weight):
     gradients = K.gradients(y_pred, averaged_samples)[0]
     gradients_sqr = K.square(gradients)
@@ -164,9 +158,6 @@ def gradient_penalty_loss(y_true, y_pred, averaged_samples, weight):
     # Penalize the gradient norm
     return K.mean(gradient_penalty * weight)
 
-def wasserstein_loss(y_true, y_pred):
-    return K.mean(y_true * y_pred)
-
 def getDataSet(path):
     print("Loading dataset...")
     X_train = np.load(path)['arr_0']
@@ -175,7 +166,6 @@ def getDataSet(path):
     print("Done! Get images : " + str(X_train.shape[0]))
     return X_train
 
-
 class GAN(object):
 
     def __init__(self):
@@ -183,9 +173,15 @@ class GAN(object):
         self.steps = 1
         self.lastblip = 0
 
-        # Two raw models
-        self.Discriminator = self.build_discriminator()
-        self.Generator = self.build_generator()
+        if TRAIN_FROM_SCRATCH:
+            # Two raw models
+            self.Discriminator = self.build_discriminator()
+            self.Generator = self.build_generator()
+        else:
+            print("Loading two models...")
+            self.Discriminator = models.load_model(D_MODEL_PATH)
+            self.Generator = models.load_model(G_MODEL_PATH)
+            print("Done!")
 
         # Two models for training
         self.Combination_Model = self.build_Combination_Model()
