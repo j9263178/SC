@@ -2,7 +2,7 @@
 
 #================== Config Stuff=================================================
 TRAIN_FROM_SCRATCH = False
-D_MODEL_PATH = "models/stgcont_80000.h5"
+D_MODEL_PATH = "models/stdcont_80000.h5"
 G_MODEL_PATH = "models/stgcont_80000.h5"
 
 LEARNING_RATE = 0.0002
@@ -179,8 +179,10 @@ class GAN(object):
             self.Generator = self.build_generator()
         else:
             print("Loading two models...")
-            self.Discriminator = models.load_model(D_MODEL_PATH)
-            self.Generator = models.load_model(G_MODEL_PATH)
+            self.Discriminator = models.load_model(D_MODEL_PATH,
+                                                   custom_objects={'AdaInstanceNormalization': AdaInstanceNormalization})
+            self.Generator = models.load_model(G_MODEL_PATH,
+                                               custom_objects={'AdaInstanceNormalization': AdaInstanceNormalization})
             print("Done!")
 
         # Two models for training
