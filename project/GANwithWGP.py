@@ -2,8 +2,8 @@
 
 #================== Config Stuff=================================================
 TRAIN_FROM_SCRATCH = False
-D_MODEL_PATH = "models/stdcont_80000.h5"
-G_MODEL_PATH = "models/stgcont_80000.h5"
+D_MODEL_PATH = "models/d_160000.h5"
+G_MODEL_PATH = "models/g_160000.h5"
 
 LEARNING_RATE = 0.0002
 IM_SIZE = 64
@@ -377,7 +377,6 @@ class GAN(object):
         n = get_noise(25)
         n2 = get_noiseImage(25)
         gen_imgs = self.Generator.predict([n, n2, np.ones([25, 1])])
-        gen_imgs = 0.5 * gen_imgs + 0.5
         gen_imgs = gen_imgs[:, :, :, ::-1]
 
         fig, axs = plt.subplots(r, c)
@@ -404,7 +403,7 @@ def configGPU():
 
 if __name__ == "__main__":
 
-    configGPU()
+    #configGPU()
 
     if os.path.exists('fuck') and os.path.isdir('fuck'):
         shutil.rmtree('fuck')
